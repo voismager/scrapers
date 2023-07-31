@@ -1,26 +1,26 @@
-import csv
 import re
-from urllib.request import urlopen, Request
 
 from bs4 import BeautifulSoup
 
-from model import ArticleContent, SectionContent
+from .abstract_extractor import AbstractExtractor
+from .html_io import read_html
+from .model import SectionContent
 
 
 def is_blank(string):
     return not (string and string.strip())
 
 
-class SerContentExtractor:
+class SerContentExtractor(AbstractExtractor):
     def __init__(self):
         self.base_url = 'https://www.ser-rrc.org/project-database/'
         self.ignored_section_names = {'Funding', 'Contacts', 'Timeframe', 'Learn More'}
 
-    def traverse_and_extract(self, page_limit=-1):
-        page = 1
+    def __traverse_and_extract(self, start_page, last_page):
+        page = start_page
 
-        while page_limit < 0 or page <= page_limit:
-            projects = self.__read_html(f'{self.base_url}/page/{page}').find_all('div', class_='project')
+        while last_page < 0 or page <= last_page:
+            projects = read_html(f'{self.base_url}/page/{page}').find_all('div', class_='project')
             if len(projects) == 0:
                 break
             else:
@@ -31,20 +31,22 @@ class SerContentExtractor:
                         print(f'Extracted {i + 1} of {len(projects)}')
                 page += 1
 
-    def __extract(self, url) -> ArticleContent:
-        doc = self.__read_html(url)
+    def __extract(self, url) -> dict:
+        doc = read_html(url)
 
         title = self.__extract_title(doc)
         location = self.__extract_location(doc)
         start_date, end_date = self.__extract_dates(doc)
         text = self.__extract_text(doc)
 
-        return ArticleContent(url, title, location, start_date, end_date, text)
-
-    def __read_html(self, url) -> BeautifulSoup:
-        with urlopen(Request(url, headers={'User-Agent': "Magic Browser"})) as resp:
-            text = resp.read().decode("utf8")
-            return BeautifulSoup(text, 'html.parser')
+        return {
+            'url': url,
+            'title' : title,
+            'location' : location,
+            'start_date' : start_date,
+            'end_date' : end_date,
+            'text' : text
+        }
 
     def __extract_title(self, doc: BeautifulSoup):
         if (main_container := doc.find(id="main")) is not None:
@@ -127,30 +129,3 @@ class SerContentExtractor:
             tag.name == 'p' and \
             tag.attrs.get('class') == ['singleattr'] and \
             tag.find('strong', string=re.compile(pattern)) is not None
-
-
-class IteratorAsList(list):
-    def __init__(self, it):
-        super().__init__()
-        self.it = it
-
-    def __iter__(self):
-        return self.it
-
-    def __len__(self):
-        return 1
-
-
-if __name__ == '__main__':
-    extractor = SerContentExtractor()
-
-    articles = extractor.traverse_and_extract()
-
-    with open('ser_projects_data.tsv', 'w', newline='') as out_f:
-        writer = csv.writer(out_f, delimiter='\t')
-
-        writer.writerow(['url', 'title', 'location', 'start_date', 'end_date', 'abstract'])
-
-        for article in articles:
-            text = ''.join([section.text for section in article.content]).replace('\t', '')
-            writer.writerow([article.url, article.title, article.location, article.start_date, article.end_date, text])
