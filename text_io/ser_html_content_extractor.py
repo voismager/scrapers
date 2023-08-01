@@ -6,7 +6,7 @@ class SerHtmlContentExtractor(AbstractExtractor):
     def __init__(self):
         self.base_url = 'https://www.ser-rrc.org/project-database/'
 
-    def __traverse_and_extract(self, start_page, last_page):
+    def traverse_and_extract(self, start_page, last_page):
         page = start_page
 
         while last_page < 0 or page <= last_page:

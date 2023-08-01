@@ -16,7 +16,7 @@ class SerContentExtractor(AbstractExtractor):
         self.base_url = 'https://www.ser-rrc.org/project-database/'
         self.ignored_section_names = {'Funding', 'Contacts', 'Timeframe', 'Learn More'}
 
-    def __traverse_and_extract(self, start_page, last_page):
+    def traverse_and_extract(self, start_page, last_page):
         page = start_page
 
         while last_page < 0 or page <= last_page:
@@ -41,11 +41,11 @@ class SerContentExtractor(AbstractExtractor):
 
         return {
             'url': url,
-            'title' : title,
-            'location' : location,
-            'start_date' : start_date,
-            'end_date' : end_date,
-            'text' : text
+            'title': title,
+            'location': location,
+            'start_date': start_date,
+            'end_date': end_date,
+            'text': text
         }
 
     def __extract_title(self, doc: BeautifulSoup):
@@ -58,7 +58,8 @@ class SerContentExtractor(AbstractExtractor):
         result = []
 
         # Check for overview
-        if (overview_doc := doc.find(lambda tag: tag.name == 'div' and 'overview' in tag.attrs.get('class', []))) is not None:
+        if (overview_doc := doc.find(
+                lambda tag: tag.name == 'div' and 'overview' in tag.attrs.get('class', []))) is not None:
             if (h2_doc := overview_doc.find('h2', string='Overview')) is not None:
                 overview_text_docs = h2_doc.find_next_siblings()
                 if len(overview_text_docs) != 0:
@@ -119,7 +120,8 @@ class SerContentExtractor(AbstractExtractor):
         quick_facts = doc.find('div', class_=['quick_facts'])
 
         if quick_facts is not None:
-            if (location_doc := quick_facts.find(self.__get_attr_predicate('((c|C)ountry)|((t|T)erritory)'), recursive=False)) is not None:
+            if (location_doc := quick_facts.find(self.__get_attr_predicate('((c|C)ountry)|((t|T)erritory)'),
+                                                 recursive=False)) is not None:
                 return location_doc.find('span').string
 
         return None

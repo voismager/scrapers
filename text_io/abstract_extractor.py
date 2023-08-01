@@ -8,8 +8,8 @@ class AbstractExtractor(ABC):
         else:
             last_page = start_page + page_limit - 1
 
-        return self.__traverse_and_extract(start_page, last_page)
+        return self.traverse_and_extract(start_page, last_page)
 
     @abstractmethod
-    def __traverse_and_extract(self, start_page, last_page):
+    def traverse_and_extract(self, start_page, last_page):
         pass
